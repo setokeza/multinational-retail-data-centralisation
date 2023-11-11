@@ -2,6 +2,7 @@ import yaml
 import psycopg2
 from sqlalchemy import create_engine 
 from sqlalchemy import inspect
+import pandas as pd
 
 class DatabaseConnector:
     '''
@@ -10,12 +11,12 @@ class DatabaseConnector:
     
     Parameters:
     ----------
-    db_creds_file: str
-        The yaml file containing database connection credentials
+    None
     
     Attributes:
     ----------
-    None
+    db_creds_file: str
+        The yaml file containing database connection credentials
 
     Methods:
     -------
@@ -28,13 +29,13 @@ class DatabaseConnector:
         Lists all the tables in the database so you know which tables you can extract data from
 
     '''
-    def __init__(self,db_creds_file):
-        self.db_creds_file = db_creds_file
+    def __init__(self):
+        self.db_creds_file = 'db_creds.yaml'
 
     def read_db_creds(self):
 
         '''
-        Reads db_creds.yaml file and returns a dictionary of the credentials.
+        Reads db_creds_file and returns a dictionary of the credentials.
         '''
 
         # opening a file
@@ -50,7 +51,7 @@ class DatabaseConnector:
         except yaml.YAMLError as e:
             print(e)
 
-    def init_db_engine(self):
+    def init_db_engine(self, db_name):
 
         '''
         Reads the credentials from the return of read_db_creds 
@@ -62,32 +63,52 @@ class DatabaseConnector:
         #return sqlalchemy database engine
         DATABASE_TYPE = 'postgresql'
         DBAPI = 'psycopg2'
-        HOST = get_creds_dict['RDS_HOST']
-        USER = get_creds_dict['RDS_USER']
-        PASSWORD = get_creds_dict['RDS_PASSWORD']
-        DATABASE = get_creds_dict['RDS_DATABASE']
-        PORT = get_creds_dict['RDS_PORT']
+        HOST = get_creds_dict[db_name +'_HOST']
+        USER = get_creds_dict[db_name +'_USER']
+        PASSWORD = get_creds_dict[db_name +'_PASSWORD']
+        DATABASE = get_creds_dict[db_name +'_DATABASE']
+        PORT = get_creds_dict[db_name +'_PORT']
         engine = create_engine(f"{DATABASE_TYPE}+{DBAPI}://{USER}:{PASSWORD}@{HOST}:{PORT}/{DATABASE}")
 
+        print('engine' , engine)
         return engine
     
     def list_db_tables(self):
         '''
         Lists all the tables in the database so you know which tables you can extract data from
         '''
-        engine = self.init_db_engine()
+        engine = self.init_db_engine('RDS')
 
         #get table names
         inspector = inspect(engine)
         table_names_list = inspector.get_table_names()
 
-        #print(table_names_list)
+        print(table_names_list)
         return table_names_list
+    
+    def upload_to_db(self, data_df, table_name):
+
+        engine = self.init_db_engine('SD')
+
+        #create active connection with autoconnect option
+        engine.execution_options(isolation_level='AUTOCOMMIT').connect()
+
+        # YOUR QUERIES HERE
+        data_df.to_sql(table_name, engine, if_exists='replace')
+
+        
 
 # only run if called directly
 if __name__ == '__main__':
-    runme = DatabaseConnector('db_creds.yaml')
-    runme.list_db_tables()
+    runme = DatabaseConnector()
+
+    #testing -------------------------------------
+    #runme.list_db_tables()
+    #testing -------------------------------------
+    #from sklearn.datasets import load_iris
+    #data = load_iris()
+    #iris = pd.DataFrame(data['data'], columns=data['feature_names'])
+    #runme.upload_to_db(iris,'test')
 
 
 
