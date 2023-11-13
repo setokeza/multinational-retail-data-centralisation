@@ -1,7 +1,6 @@
 import pandas as pd
 import numpy as np # We will need the `nan` constant from the numpy library to apply to missing values
 import re
-import pycountry
 
 from data_extraction import DataExtractor
 from database_utils import DatabaseConnector
@@ -34,15 +33,19 @@ class DataCleaning:
 
 
         #set dtypes for objects
-        string_list = ['first_name','last_name','company','email_address','address','country','country_code','phone_number','user_uuid']
-        for column_name in string_list:   
-            self.data[column_name] = self.data[column_name].astype('string')
-            
-        # convert object to datetime, replace non-parseable values with NaN
+        string_list = ['first_name','last_name','company','email_address','address','phone_number','user_uuid']
+        category_list = ['country', 'country_code']
         date_list = ['date_of_birth','join_date']
-        for column_name in date_list:
-            self.data[column_name] = self.data[column_name].apply(pd.to_datetime, errors='coerce')
-
+        
+        for column_name in self.data.columns:
+            if column_name in string_list:   
+                self.data[column_name] = self.data[column_name].astype('string')
+            elif column_name in category_list:
+                self.data[column_name] = self.data[column_name].astype('category')
+            elif column_name in date_list:
+                # convert object to datetime, replace non-parseable values with NaN
+                self.data[column_name] = self.data[column_name].apply(pd.to_datetime, errors='coerce')
+            
         #validate emails, replace errors with Nan
         email_regex = r"^[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$" 
         # For every row  where the email column does not match our regular expression, replace the value with NaN
@@ -53,9 +56,6 @@ class DataCleaning:
         # For every row  where the phone_number column does not match our regular expression, replace the value with NaN
         self.data.loc[~self.data['phone_number'].str.match(phone_regex), 'phone_number'] = np.nan 
         
-        #country and country_code
-        #TODO
-
         #remove nulls
         self.data.dropna(inplace=True)
 
@@ -74,9 +74,35 @@ class DataCleaning:
         #upload to database
         self.connector.upload_to_db(self.data,'dim_users')
 
+    def clean_card_data(self):
+                        
+        #get data 
+        pdf_link = 'https://data-handling-public.s3.eu-west-1.amazonaws.com/card_details.pdf'
+        self.data = self.extractor.retrieve_pdf_data(pdf_link)
+        print(self.data.info())
+
+        # Checking for any overall null values 
+        print(f"Total null values in the dataframe are : {df.isna().sum().sum()}")
+        # Removing null values 
+        df = df[~df.isna()]
+        # Checking all the unique category values
+        print(df['card_provider'].unique())
+        # Removing any unique category values that are erroneous
+        df=df[df['card_provider'].isin(['Diners Club / Carte Blanche','American Express','JCB 16 digit','JCB 15 digit','Maestro', 'Mastercard','Discover','VISA 19 digit', 'VISA 16 digit','VISA 13 digit'])]
+        df['card_provider'] = df['card_provider'].astype('category')
+        df['card_number'] = df['card_number'].astype(str)
+        # Removing symbols from card_number
+        df['card_number'] = df['card_number'].str.replace('[^a-zA-Z0-9\s]', '', regex=True)
+        df['card_number'] =  df['card_number'].astype(int)
+        # Converting date to right format
+        df['date_payment_confirmed'] = pd.to_datetime(df['date_payment_confirmed'], errors='coerce')
+        return df
+
+
 # only run if called directly
 if __name__ == '__main__':
     runme = DataCleaning()
 
     #testing ----------------
-    #runme.clean_user_data()
+    runme.clean_user_data()
+    #runme.clean_card_data()

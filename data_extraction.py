@@ -1,7 +1,8 @@
 import pandas as pd
+from tabula import read_pdf
 from database_utils import DatabaseConnector 
 
-class DataExtractor(DatabaseConnector):
+class DataExtractor():
     def __init__(self):
         pass
 
@@ -25,10 +26,23 @@ class DataExtractor(DatabaseConnector):
             data = pd.read_sql_table(table_to_read, engine)
             return data
 
+    def retrieve_pdf_data(self,pdf_link):
+
+        '''
+        Takes in a link as an argument.
+        Extracts & concats all pages from the pdf document at pdf_link .
+        Returns a DataFrame of the extracted data.
+        '''
+        dfs = read_pdf(pdf_link,pages='all')
+        card_df = pd.concat(dfs)
+        return card_df
+
 
 # only run if called directly
 if __name__ == '__main__':
     db_connector = DatabaseConnector()
     runme = DataExtractor()
-    runme.read_rds_table(db_connector,'legacy_users')
+    #runme.read_rds_table(db_connector,'legacy_users')
+    pdf_link = 'https://data-handling-public.s3.eu-west-1.amazonaws.com/card_details.pdf'
+    runme.retrieve_pdf_data(pdf_link).info()
     

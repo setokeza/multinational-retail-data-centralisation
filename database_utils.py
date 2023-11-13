@@ -70,7 +70,6 @@ class DatabaseConnector:
         PORT = get_creds_dict[db_name +'_PORT']
         engine = create_engine(f"{DATABASE_TYPE}+{DBAPI}://{USER}:{PASSWORD}@{HOST}:{PORT}/{DATABASE}")
 
-        print('engine' , engine)
         return engine
     
     def list_db_tables(self):
