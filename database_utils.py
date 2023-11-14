@@ -95,7 +95,6 @@ class DatabaseConnector:
         # YOUR QUERIES HERE
         data_df.to_sql(table_name, engine, if_exists='replace')
 
-        
 
 # only run if called directly
 if __name__ == '__main__':
