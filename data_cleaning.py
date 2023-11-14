@@ -124,6 +124,65 @@ class DataCleaning:
         #upload to database
         self.df_upload('dim_store_data')
     
+    def convert_product_weights (self, data):
+
+        data['in_kg'] = data['weight'].str.contains('kg')
+        data['weight_units'] = np.where(data['weight'].str.contains('kg'), 'kg', 'not in kg')
+
+        data['weight'] = data['weight'].replace({'16oz': '0.454', '77g .': '77g'})
+        data['weight'] = data['weight'].replace({r'kg': '', r'g': '', r'ml': ''}, regex=True)
+        data['weight'] = data['weight'].replace({r'12 x 100': '1200', r'8 x 150': '1200', r'6 x 412': '2472', r'6 x 400': '2400', r'8 x 85': '680', r'40 x 100': '4000', r'12 x 85': '1020', r'3 x 2': '6', r'3 x 90': '270', r'16 x 10': '160', r'3 x 132': '396', r'5 x 145': '725', r'4 x 400': '1600', r'2 x 200': '400'})
+        data['weight'] = pd.to_numeric(data['weight'], errors='coerce')
+
+        data['weight'] = np.where(data['weight_units'] == 'not in kg', data['weight'] / 1000, data['weight'])
+
+        data = data.rename(columns={'weight': 'weight_kg'})
+        data = data.drop(columns=['in_kg', 'weight_units'])
+
+        return data
+
+    
+    def clean_products_data (self):
+
+        #get data
+        file_path = '/Users/shaha/Documents/AiCore/Downloads/products.csv'
+        bucket = 'data-handling-public'
+        object = 'products.csv'
+        self.data = self.extractor.extract_from_s3(file_path, bucket, object)
+        
+        #convert_product_weights
+        self.data = self.convert_product_weights(self.data)
+        
+        #remove nulls/dups
+        self.df_pre_processing()
+
+        #data specific cleaning
+        self.data = self.data.rename(columns={'Unnamed: 0': 'index'})
+        self.data = self.data.set_index(['index'])
+        categories = ['toys-and-games', 'sports-and-leisure', 'pets', 'homeware', 'health-and-beauty', 'food-and-drink', 'diy']
+        self.data = self.data[self.data['category'].isin(categories)]
+        self.data['product_price'] = self.data['product_price'].str.replace('£', '', regex=False)
+        self.data = self.data.rename(columns={'product_price': 'product_price_£'})
+
+        date_list = ['date_added']
+        int64_list = ['EAN']
+        string_list = ['product_name','category','uuid','removed','product_code']
+        category_list = ['category']
+        float_list = ['product_price_£']
+
+        #convert dtypes
+        self.convert_to_type('date', date_list)
+        self.convert_to_type('int64',int64_list)
+        self.convert_to_type('string',string_list)
+        self.convert_to_type('category',category_list)
+        self.convert_to_type('float',float_list)
+
+        #remove rows with nulls/duplicates
+        self.df_post_processing()
+
+        #upload to database
+        self.df_upload('dim_products')
+
 
     def convert_to_type (self, to_type, column_list):
 
@@ -197,4 +256,5 @@ if __name__ == '__main__':
     #testing ----------------
     #runme.clean_user_data()
     #runme.clean_card_data()
-    runme.clean_store_data()
+    #runme.clean_store_data()
+    runme.clean_products_data()

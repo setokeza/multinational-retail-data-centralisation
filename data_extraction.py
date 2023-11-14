@@ -1,8 +1,10 @@
+import boto3
 import pandas as pd
 import numpy as np
 import json
 import requests
 from tabula import read_pdf
+import awswrangler as wr
 from database_utils import DatabaseConnector 
 
 
@@ -62,10 +64,19 @@ class DataExtractor():
             data =  pd.concat([data, pd.DataFrame(api_response, index=[np.NaN])], ignore_index=True)
         print(data)
         return data
+    
+    def extract_from_s3(self, file_path, bucket, object):
+        s3 = boto3.client('s3')
+        with open(file_path, 'wb') as f:
+            s3.download_fileobj(bucket, object, f)
+        data = pd.read_csv(file_path)
+        return data
+        
 
 # only run if called directly
 if __name__ == '__main__':
     db_connector = DatabaseConnector()
     runme = DataExtractor()
 
+    
     
