@@ -41,7 +41,7 @@ The store data can be retrieved through the use of an API.  The API has two GET 
 - Step 5. Upload your DataFrame to the database using the upload_to_db method storing it in the table dim_store_details.
 
 ## Task 6
-### The information for each product the company currently sells is stored in CSV format in an S3 bucket on AWS.
+The information for each product the company currently sells is stored in CSV format in an S3 bucket on AWS.
 
 ## Task 7
 ### Retrieve and clean the orders table.
