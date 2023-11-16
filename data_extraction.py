@@ -71,6 +71,7 @@ class DataExtractor():
             s3.download_fileobj(bucket, object, f)
         data = pd.read_csv(file_path)
         return data
+    
         
 
 # only run if called directly

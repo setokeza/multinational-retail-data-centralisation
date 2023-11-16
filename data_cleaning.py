@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np # We will need the `nan` constant from the numpy library to apply to missing values
 import re
+import requests
 
 from data_extraction import DataExtractor
 from database_utils import DatabaseConnector
@@ -9,7 +10,7 @@ class DataCleaning:
     def __init__(self):
         self.connector = DatabaseConnector()
         self.extractor = DataExtractor()
-        self.data = {}
+        self.data = pd.DataFrame()
         
     def clean_user_data(self):
         '''
@@ -27,16 +28,11 @@ class DataCleaning:
 
         #drop nulls & duplicates
         self.df_pre_processing()
-
-        #set dtypes for objects
-        string_list = ['first_name','last_name','company','email_address','address','phone_number','user_uuid']
-        category_list = ['country', 'country_code']
-        date_list = ['date_of_birth','join_date']
         
         #convert dtypes
-        self.convert_to_type('string',string_list)
-        self.convert_to_type('category',category_list)
-        self.convert_to_type('date', date_list)
+        self.convert_to_type('string',['first_name','last_name','company','email_address','address','phone_number','user_uuid'])
+        self.convert_to_type('category',['country', 'country_code'])
+        self.convert_to_type('date', ['date_of_birth','join_date'])
 
         #validate emails, replace errors with Nan
         self.validate_email('email_address')
@@ -59,15 +55,11 @@ class DataCleaning:
 
         #data pre-processing
         self.df_pre_processing()
-
-        string_list = ['card_number','expiry_date']
-        category_list = ['card_provider']
-        date_list = ['date_payment_confirmed']
   
         #convert dtypes
-        self.convert_to_type('string',string_list)
-        self.convert_to_type('category',category_list)
-        self.convert_to_type('date', date_list)
+        self.convert_to_type('string',['card_number','expiry_date'])
+        self.convert_to_type('category',['card_provider'])
+        self.convert_to_type('date', ['date_payment_confirmed'])
 
         self.data.info()
         print(self.data.head(20))
@@ -108,15 +100,11 @@ class DataCleaning:
         self.data['staff_numbers'] = self.data['staff_numbers'].replace({r'J': '', r'e': '', r'R': '', r'A': '', r'n': ''}, regex=True)
         self.data['staff_numbers'] = self.data['staff_numbers'].astype('int64')
         self.data = self.data.drop(columns=['lat'])
-
-        string_list = ['address','locality','store_code']
-        float_list = ['longitude', 'latitude']
-        category_list = ['store_type','country_code','continent']
         
         #convert dtypes
-        self.convert_to_type('string',string_list)
-        self.convert_to_type('category',category_list)
-        self.convert_to_type('float',float_list)
+        self.convert_to_type('string', ['address','locality','store_code'])
+        self.convert_to_type('category', ['longitude', 'latitude'])
+        self.convert_to_type('float', ['store_type','country_code','continent'])
 
         #remove rows with nulls/duplicates
         self.df_post_processing()
@@ -164,24 +152,70 @@ class DataCleaning:
         self.data['product_price'] = self.data['product_price'].str.replace('£', '', regex=False)
         self.data = self.data.rename(columns={'product_price': 'product_price_£'})
 
-        date_list = ['date_added']
-        int64_list = ['EAN']
-        string_list = ['product_name','category','uuid','removed','product_code']
-        category_list = ['category']
-        float_list = ['product_price_£']
-
         #convert dtypes
-        self.convert_to_type('date', date_list)
-        self.convert_to_type('int64',int64_list)
-        self.convert_to_type('string',string_list)
-        self.convert_to_type('category',category_list)
-        self.convert_to_type('float',float_list)
+        self.convert_to_type('date', ['date_added'])
+        self.convert_to_type('int64', ['EAN'])
+        self.convert_to_type('string', ['product_name','category','uuid','removed','product_code'])
+        self.convert_to_type('category', ['category'])
+        self.convert_to_type('float', ['product_price_£'])
 
         #remove rows with nulls/duplicates
         self.df_post_processing()
 
         #upload to database
         self.df_upload('dim_products')
+
+
+    def clean_orders_data(self):
+
+        #get data from the orders table
+        self.data = self.extractor.read_rds_table(self.connector,'orders_table')
+     
+        print('\nBefore changes:')
+        print(self.data.info())
+
+        #drop unnecessary columns
+        self.data = self.data.drop(columns=['level_0', 'first_name', 'last_name', '1'])
+
+        #convert dtypes
+        self.convert_to_type('int64',['card_number','product_quantity'])
+        self.convert_to_type('string', ['store_code',['product_code','date_uuid','user_uuid']])
+
+        #remove rows with nulls and duplicates
+        self.df_post_processing()
+
+        #upload to database
+        self.df_upload('orders_table')
+
+    def clean_dates_data(self):
+        
+        #get data
+        api_fetch = requests.get('https://data-handling-public.s3.eu-west-1.amazonaws.com/date_details.json')
+        self.data = pd.DataFrame(api_fetch.json())
+
+        #remove rows with nulls and duplicates        
+        self.df_pre_processing()
+        print('\n',self.data.head(10))
+
+        #data specific cleaning
+        print('\nUnique values in time_period: ',self.data['time_period'].unique(),'\n')
+        self.data = self.data[self.data['time_period'].isin(['Evening', 'Morning', 'Midday', 'Late_Hours'])]
+
+        #combine day, month, year, timestamp to create date series
+        self.data['date_time'] = pd.to_datetime(self.data[['year', 'month', 'day']])
+        self.data['date_time'] = self.data['date_time'].astype(str)
+        self.data['date_time'] = pd.to_datetime(self.data['date_time'] + ' ' + self.data['timestamp'])
+        self.data = self.data.drop(columns=['month', 'year', 'day', 'timestamp'])
+
+        #convert dtypes
+        self.convert_to_type('category',['time_period'])
+        self.convert_to_type('string', ['date_uuid'])
+ 
+        #remove rows with nulls and duplicates
+        self.df_post_processing()
+
+        #upload to database
+        self.df_upload('dim_date_times')
 
 
     def convert_to_type (self, to_type, column_list):
@@ -203,7 +237,7 @@ class DataCleaning:
         self.data.loc[~self.data[email_col].str.match(email_regex), email_col] = np.nan 
 
     def validate_phone(self, phone_col):
-        phone_regex = '^(?:(?:\(?(?:0(?:0|11)\)?[\s-]?\(?|\+)44\)?[\s-]?(?:\(?0\)?[\s-]?)?)|(?:\(?0))(?:(?:\d{5}\)?[\s-]?\d{4,5})|(?:\d{4}\)?[\s-]?(?:\d{5}|\d{3}[\s-]?\d{3}))|(?:\d{3}\)?[\s-]?\d{3}[\s-]?\d{3,4})|(?:\d{2}\)?[\s-]?\d{4}[\s-]?\d{4}))(?:[\s-]?(?:x|ext\.?|\#)\d{3,4})?$' 
+        phone_regex = r"^(?:(?:\(?(?:0(?:0|11)\)?[\s-]?\(?|\+)44\)?[\s-]?(?:\(?0\)?[\s-]?)?)|(?:\(?0))(?:(?:\d{5}\)?[\s-]?\d{4,5})|(?:\d{4}\)?[\s-]?(?:\d{5}|\d{3}[\s-]?\d{3}))|(?:\d{3}\)?[\s-]?\d{3}[\s-]?\d{3,4})|(?:\d{2}\)?[\s-]?\d{4}[\s-]?\d{4}))(?:[\s-]?(?:x|ext\.?|\#)\d{3,4})?$"
         # For every row  where the phone_number column does not match our regular expression, replace the value with NaN
         self.data.loc[~self.data[phone_col].str.match(phone_regex), phone_col] = np.nan 
 
@@ -212,21 +246,20 @@ class DataCleaning:
 
     def df_pre_processing (self):
         #check before stats
-        print('Before changes:')
+        print('\nBefore changes:')
         print(self.data.info())
 
         # Check for any overall null values 
         total_nulls = self.data.isna().sum().sum()
-        print(f"Total null values in the dataframe are : {total_nulls}")
-        #remove nulls
+        print(f"\nTotal null values in the dataframe are : {total_nulls}")
+        #remove nulls if present
         if total_nulls > 0:
             self.data.dropna(inplace=True)
+            print(f"\n{total_nulls} nulls dropped.  Current nulls in dataframe: {self.data.isna().sum().sum()}")
 
-        print(f"Nulls dropped.  Total null values in the dataframe are : {self.data.isna().sum().sum()}")
-
-        #remove duplicates
-        print('Duplicates dropped..')
+        #remove duplicates if present
         self.data.drop_duplicates(inplace=True)
+        print(f'\nDuplicates dropped.')
 
 
     def df_post_processing (self):
@@ -236,9 +269,9 @@ class DataCleaning:
         self.data.drop_duplicates(inplace=True)
 
         #check after stats
-        print('After Changes:')
+        print('\nAfter Changes:')
         print(self.data.info())    
-        print(f"Total null values in the dataframe are : {self.data.isna().sum().sum()}")
+        print(f"\nTotal null values in the dataframe are : {self.data.isna().sum().sum()}")
 
     def df_upload (self, table_name):
     
@@ -248,6 +281,7 @@ class DataCleaning:
 
         #upload to database
         self.connector.upload_to_db(self.data, table_name)
+        print(f'{self.data.shape[0]} rows uploaded to "{table_name}" table')
 
 # only run if called directly
 if __name__ == '__main__':
@@ -257,4 +291,6 @@ if __name__ == '__main__':
     #runme.clean_user_data()
     #runme.clean_card_data()
     #runme.clean_store_data()
-    runme.clean_products_data()
+    #runme.clean_products_data()
+    #runme.clean_orders_data()
+    runme.clean_dates_data()
