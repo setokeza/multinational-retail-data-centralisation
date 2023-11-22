@@ -226,6 +226,51 @@ class SqlQueries:
             print('make_foreign_keys_queries: \n', query)
             conn.execute(query)
 
+    def drop_allkeys_queries(self):
+    
+        #create active connection with autoconnect option
+        with self.engine.execution_options(isolation_level='AUTOCOMMIT').connect() as conn:
+
+            query = text(f"ALTER TABLE orders_table\n"
+                    f"DROP CONSTRAINT FK_orders_table_card_number;\n"
+
+                    f"ALTER TABLE orders_table\n"
+                    f"DROP CONSTRAINT FK_orders_table_date_uuid;\n"
+
+                    f"ALTER TABLE orders_table\n"
+                    f"DROP CONSTRAINT FK_orders_table_store_code;\n"
+
+                    f"ALTER TABLE orders_table\n"
+                    f"DROP CONSTRAINT FK_orders_table_product_code;\n"
+
+                    f"ALTER TABLE orders_table\n"
+                    f"DROP CONSTRAINT FK_orders_table_user_uuid;\n"
+                    )                        
+            
+            print('drop_foreign_keys_queries: \n', query)
+            conn.execute(query)
+        
+            #Changing the columns datatype
+            query = text(f"ALTER TABLE dim_card_details\n"
+                        f"DROP CONSTRAINT PK_card_number;\n"
+
+                        f"ALTER TABLE dim_date_times\n"
+                        f"DROP CONSTRAINT PK_date_uuid;\n"
+
+                        f"ALTER TABLE dim_store_details\n"
+                        f"DROP CONSTRAINT PK_store_code;\n"
+
+                        f"ALTER TABLE dim_products\n"
+                        f"DROP CONSTRAINT PK_product_code;\n"
+
+                        f"ALTER TABLE dim_users\n"
+                        f"DROP CONSTRAINT PK_user_uuid;\n"
+                        )
+
+            print('drop_primary_keys_queries: \n', query)
+            conn.execute(query)
+
+
 # only run if called directly
 if __name__ == '__main__':
     runme = SqlQueries()
@@ -238,4 +283,8 @@ if __name__ == '__main__':
     #runme.dim_card_details_queries()
     #runme.make_primary_keys()
     #runme.make_foreign_keys_queries()
+    #runme.drop_allkeys_queries()
+
+
+
 

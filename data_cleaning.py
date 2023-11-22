@@ -103,7 +103,9 @@ class DataCleaning:
         #remove strings from float columns
         self.data['longitude'] = self.data['longitude'].replace({r'N/A': np.NaN}, regex=True)
         self.data['latitude'] = self.data['latitude'].replace({r'N/A': np.NAN}, regex=True)
-        
+        #update country_code to empty string for web-portal
+        self.data.loc[self.data['store_code'] == 'WEB-1388012W', 'country_code'] = np.NaN
+
         #convert dtypes
         self.convert_to_type('string', ['address','locality','store_code','store_type','country_code','continent'])
         self.convert_to_type('category', ['longitude', 'latitude'])
@@ -202,10 +204,10 @@ class DataCleaning:
         self.data = self.data[self.data['time_period'].isin(['Evening', 'Morning', 'Midday', 'Late_Hours'])]
 
         #combine day, month, year, timestamp to create date series
-        self.data['date_time'] = pd.to_datetime(self.data[['year', 'month', 'day']])
-        self.data['date_time'] = self.data['date_time'].astype(str)
-        self.data['date_time'] = pd.to_datetime(self.data['date_time'] + ' ' + self.data['timestamp'])
-        self.data = self.data.drop(columns=['month', 'year', 'day', 'timestamp'])
+        #self.data['date_time'] = pd.to_datetime(self.data[['year', 'month', 'day']])
+        #self.data['date_time'] = self.data['date_time'].astype(str)
+        #self.data['date_time'] = pd.to_datetime(self.data['date_time'] + ' ' + self.data['timestamp'])
+        #self.data = self.data.drop(columns=['month', 'year', 'day', 'timestamp'])
 
         #convert dtypes
         self.convert_to_type('category',['time_period'])
