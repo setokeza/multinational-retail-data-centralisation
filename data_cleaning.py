@@ -1,7 +1,7 @@
+import requests
 import pandas as pd
 import numpy as np # We will need the `nan` constant from the numpy library to apply to missing values
-import re
-import requests
+
 
 from data_extraction import DataExtractor
 from database_utils import DatabaseConnector
@@ -87,34 +87,35 @@ class DataCleaning:
         header_dict = {'x-api-key':'yFBQbwXe9J3sd6zWVAMrK6lcxxr0q1lr2PT6DDMX'}
         self.data = self.extractor.retrieve_stores_data(endpoint, header_dict)
         
-        #print(data.head())
-        #print(self.data.info())
+        print('\nBefore changes: \n')
+        print(self.data.info())
 
         self.data = self.data.set_index(['index'])
         self.data['continent'] = self.data['continent'].str.replace('eeEurope', 'Europe', regex=False)
         self.data['continent'] = self.data['continent'].str.replace('eeAmerica', 'America', regex=False)
         self.data = self.data[self.data['continent'].isin(['Europe', 'America'])]
-        self.data['address'] = self.data['address'].str.replace('\n', ',', regex=False)
 
         self.data['opening_date'] = self.data['opening_date'].apply(pd.to_datetime, errors='ignore')
         self.data['staff_numbers'] = self.data['staff_numbers'].replace({r'J': '', r'e': '', r'R': '', r'A': '', r'n': ''}, regex=True)
         self.data['staff_numbers'] = self.data['staff_numbers'].astype('int64')
         self.data = self.data.drop(columns=['lat'])
         
+        #remove strings from float columns
+        self.data['longitude'] = self.data['longitude'].replace({r'N/A': np.NaN}, regex=True)
+        self.data['latitude'] = self.data['latitude'].replace({r'N/A': np.NAN}, regex=True)
+        
         #convert dtypes
-        self.convert_to_type('string', ['address','locality','store_code'])
+        self.convert_to_type('string', ['address','locality','store_code','store_type','country_code','continent'])
         self.convert_to_type('category', ['longitude', 'latitude'])
-        self.convert_to_type('float', ['store_type','country_code','continent'])
 
-        #remove rows with nulls/duplicates
-        self.df_post_processing()
+        print ('\nAfter Changes: ',self.data.info())
 
         #upload to database
-        self.df_upload('dim_store_data')
+        self.df_upload('dim_store_details')
     
     def convert_product_weights (self, data):
 
-        data['in_kg'] = data['weight'].str.contains('kg')
+        #data['in_kg'] = data['weight'].str.contains('kg')
         data['weight_units'] = np.where(data['weight'].str.contains('kg'), 'kg', 'not in kg')
 
         data['weight'] = data['weight'].replace({'16oz': '0.454', '77g .': '77g'})
@@ -125,7 +126,7 @@ class DataCleaning:
         data['weight'] = np.where(data['weight_units'] == 'not in kg', data['weight'] / 1000, data['weight'])
 
         data = data.rename(columns={'weight': 'weight_kg'})
-        data = data.drop(columns=['in_kg', 'weight_units'])
+        data = data.drop(columns=['weight_units'])
 
         return data
 
@@ -150,21 +151,20 @@ class DataCleaning:
         categories = ['toys-and-games', 'sports-and-leisure', 'pets', 'homeware', 'health-and-beauty', 'food-and-drink', 'diy']
         self.data = self.data[self.data['category'].isin(categories)]
         self.data['product_price'] = self.data['product_price'].str.replace('£', '', regex=False)
-        self.data = self.data.rename(columns={'product_price': 'product_price_£'})
+        self.data = self.data.rename(columns={'product_price': 'price_£'})
 
         #convert dtypes
         self.convert_to_type('date', ['date_added'])
         self.convert_to_type('int64', ['EAN'])
         self.convert_to_type('string', ['product_name','category','uuid','removed','product_code'])
         self.convert_to_type('category', ['category'])
-        self.convert_to_type('float', ['product_price_£'])
+        self.convert_to_type('float', ['price_£'])
 
         #remove rows with nulls/duplicates
         self.df_post_processing()
 
         #upload to database
         self.df_upload('dim_products')
-
 
     def clean_orders_data(self):
 
@@ -290,7 +290,7 @@ if __name__ == '__main__':
     #testing ----------------
     #runme.clean_user_data()
     #runme.clean_card_data()
-    #runme.clean_store_data()
+    runme.clean_store_data()
     #runme.clean_products_data()
     #runme.clean_orders_data()
-    runme.clean_dates_data()
+    #runme.clean_dates_data()
