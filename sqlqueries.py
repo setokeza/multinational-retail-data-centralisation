@@ -223,10 +223,7 @@ class SqlQueries:
                         f"REFERENCES dim_users(user_uuid);\n"
                         )
             
-
-
-            
-            print('dim_card_details_queries: \n', query)
+            print('make_foreign_keys_queries: \n', query)
             conn.execute(query)
 
 # only run if called directly
