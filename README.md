@@ -1,58 +1,138 @@
 # multinational-retail-data-centralisation
 
-# Milestone 2 : Extract and clean the data from the data source
-## Task 1
-### Set up a new database to store the data
-- Step 1. Initialise a new database locally to store the extracted data.
-- Step 2. Set up a new database within pgadmin4 and name it sales_data.
-- Step 3. This database will store all the company information once yout extract it for the various data sources.
+## Table of Contents
+- [Description](#description)
+- [Prerequisites](#prerequisites)
+- [Installation](#installation)
+- [File Structure](#file-structure)
+- [Usage](#usage)
+- [License](#license)
 
-## Task 2
-### Initialise the three project Classes.
-- Step 1. Creat a new Python script named data_extraction.py and within it, create a class named DataExtractor.
-- Step 2. Create a class DatabaseConnector which you will use to connect with and upload data to the database.
-- Step 3: Create a script contain a class DaraCleaning with methods to clean data from each of the data sources.
+## Description
 
-## Task 3
-### Extract and clean the user data.
-- Step 1. Create a .yaml file containing the database credentials.Develop methods in your DatabaseConnector class to extract the data from the database.
-- Step 2. Create a method read_db_creds - this will read the credentials yaml file and return a dictionary of the credentials.
-- Step 3. Create a method init_dv_engine which will read the credentials from the return of read_db_creds and initialise and return an sqlalchemy database engine.
-- Step 4. Using the engine from init_db_engine create a method list_db_tables to list all the tables in the database so you know which tables you can extract data from. Develop a method inside your DataExtractor class to read the data from the RDS database.
-- Step 5. Develop a method called read_rds_table in your DataExtractor class which will extract the database table to a pandas DataFrame. It will take in an instance of your DatabaseConnector class and the table name as an argument and return a pandas DataFrame. Use your list_db_tables method to get the name of the table containing user data. Use the read_rds_table method to extract the table containing user data and return a pandas DataFrame.
-- Step 6. Create a method called clean_user_data in the DataCleaning class which will perform the cleaning of the user data. You will need clean the user data, look out for NULL values, errors with dates, incorrectly typed values and rows filled with the wrong information.
-- Step 7. Now create a method in your DatabaseConnector class called upload_to_db. This method will take in a Pandas DataFrame and table name to upload to as an argument.
-- Step 8. Once extracted and cleaned use the upload_to_db method to store the data in your sales_data database in a table named dim_users.
+The Multinational Retail Data Centralisation project is designed to centralise and organize sales data from a multinational company, creating a unified source of information for analysis by team members. 
 
-## Task 4
-### Extracting users and cleaning card details.
-- Step 1. Install the Python package tabula-py this will help you to extract data from a pdf document.
-- Step 2. Create a method in your DataExtractor class called retrieve_pdf_data, which takes in a link as an argument and returns a pandas DataFrame.
-- Step 3. Create a method called clean_card_data in your DataCleaning class to clean the data to remove any erroneous values, NULL values or errors with formatting.
-- Step 4. Once cleaned, upload the table with your upload_to_db method to the database in a table called dim_card_details.
+1. The project involves the creation of the central database 'sales_data'.
 
-## Task 5
-### Extract and clean the details of each store.
-The store data can be retrieved through the use of an API.  The API has two GET methods. One will return the number of stores in the business and the other to retrieve a store given a store number.  To connect to the API you will need to include the API key to connect to the API in the method header.
-- Step 1. Create a method in your DataExtractor class called list_number_of_stores which returns the number of stores to extract. It should take in the number of stores endpoint and header dictionary as an argument.
-- Step 2. Now that you know how many stores need to be extracted from the API.
-- Step 3. Create another method retrieve_stores_data which will take the retrieve a store endpoint as an argument and extracts all the stores from the API saving them in a pandas DataFrame.
-- Step 4. Create a method in the DataCleaning class called_clean_store_data which cleans the data retrieve from the API and returns a pandas DataFrame.
-- Step 5. Upload your DataFrame to the database using the upload_to_db method storing it in the table dim_store_details.
+2. Data is extracted from various sources, cleaned and uploaded to the database as distinct tables.
 
-## Task 6
-The information for each product the company currently sells is stored in CSV format in an S3 bucket on AWS.
+3. These tables are configured into a meaningful relational database.
 
-## Task 7
-### Retrieve and clean the orders table.
-This table which acts as the single source of truth for all orders the company has made in the past is stored in a database on AWS RDS.
-- Step 1. Using the database table listing methods you created earlier list_db_tables, list all the tables in the database to get the name of the table containing all information about the product orders.
-- Step 2. Extract the orders data using the read_rds_table method you create earlier returning a pandas DataFrame.
-- Step 3. Create a method in DataCleaning called clean_orders_data which will clean the orders table data.
+4.  We are then able to run business intelligence queries against this database in order to better understand the sales data.
 
-## Task 8
-### Retrieve and clean the data events data.
-The final source of data is a JSON file containing the details of when each sale happened, as well as related attributes.
+## Prerequisites
 
-## Task 9
-Update the latest code changes to GitHub
+Before using this project, make sure you have the following prerequisites installed and configured:
+
+1. **Python:**
+    - This project is written in Python. Ensure you have Python installed on your machine. You can download Python from [here](https://www.python.org/).
+    - Verify your Python installation by running `python --version` in a new terminal.
+
+2. **AWS CLI:**
+    - The AWS Command Line Interface (CLI) is used for interacting with Amazon S3. Install the AWS CLI by following the instructions [here](https://aws.amazon.com/cli/).
+    -  Verify your AWS CLI installation by running `aws --version` in a new terminal.
+
+3. **PGAdmin 4 and PostgreSQL:**
+    - Download and install PG4Admin and PostgreSQL. You can download PGAdmin 4 from [here](https://www.pgadmin.org/download/) and PostgreSQL from [here](https://www.enterprisedb.com/downloads/postgres-postgresql-downloads)
+    - Create a sales_data database in PG4Admin for later use.
+
+4. **VSCODE with Python and SQLTools:**
+    - Ensure Visual Studio Code (VSCode) is installed on your machine. You can download VSCODE from [here](https://code.visualstudio.com/download)
+    - Install the Python extension for VSCode for a smooth development experience.
+    - Install SQLTools extension in VSCode to facilitate SQL query execution.
+
+5. **Miniconda3 for Virtual Environments:**
+    - Install Miniconda3 to manage virtual environments easily. You can download Miniconda3 from [here](https://docs.conda.io/projects/miniconda/en/latest/)
+    -  Verify Miniconda3 installation by running `conda --version` in a new terminal.
+
+    - The relevant Python libraries are pre-configured in mrdc_env.yaml. Complete the installation by executing:
+
+    ```bash
+    conda env create -f mrdc_env.yaml
+    conda activate mrdc
+    ```
+## Installation
+
+Clone this repository to your local machine:
+
+```bash
+git clone https://github.com/setokeza/AiCore-Multinational-Retail-Data-Centralisation.git
+```
+## File Structure
+
+- **milestone_2_utils**
+    - `db_creds.yaml`: Database credentials configuration file.  Create entries  for both the database you are extracting from (keep RDS prefix), and the database you are uploading to (keep SD prefix), as follows:
+        - file format:
+        -    RDS_HOST: [host]\
+            RDS_PASSWORD: [password]\
+            RDS_USER: [user]\
+            RDS_DATABASE: postgres\
+            RDS_PORT: 5432
+
+        -    SD_HOST: localhost\
+            SD_USER: postgres\
+            SD_PASSWORD: [password]\
+            SD_DATABASE: sales_data\
+            SD_PORT: 5432
+
+  - `data_cleaning.py`: Script for cleaning user, card, store, product, date and order data.
+  - `data_extraction.py`: Script for extracting data from RDS tables, PDFs, APIs, and S3.
+  - `database_connector.py`: Script for connecting to and uploading data to a PostgreSQL database.
+
+- **milestone_3_star_schema_sales_database**
+  - **modify database schema** : 
+    -   `sql_queries.py` sql script to change/update database schema. `main.py` runs `sql_queries.py` to create the final database schema.  The following query groups are run as desired and can be altered in `main.py`:
+    -   1. drop primary & foreign keys
+        2. change datatypes on all tables
+        3. add primary & foreign keys
+        4. show specified database schema:
+            1. show row count
+            2. show column_name, data_type, character_maximum_length
+            3. show table constraints
+
+- **milestone_4_data_querying**
+  - `bi_queries.sql`: SQL script for business-related queries. `main.py` runs `bi_queries.sql` to generate business intelligence reports. 
+  -  The following reports are generated and can be altered in `main.py`:
+        1. How many stores does the business have and in which countries?
+        2. Which locations currently have the most stores?
+        3. Which months produce the most sales?
+        4. How many sales are coming from online?
+        5. What percentage of sales comes through from each type of store?
+        6. Which month in which year produced the most sales?
+        7. What is our staff headcount?
+        8. Which German Store Type is selling the most?
+        9. How quickly is the company making sales?
+
+- `.gitignore`: Gitignore file which include the database credentials file `db_creds.yaml`.
+- `README.md`: Documentation file.
+- `mrdc_env.yaml`: Conda environment configuration file.
+- `main.py`: Main script for executing the centralization process.
+
+## Usage
+
+### Setting up 
+1. Ensure you have activated the Conda environment:
+
+    ```bash
+    conda activate mrdc
+    ```
+2. Ensure you have the extract database, and upload database, creds ready as `db_creds.yaml` file.
+
+### Uploading Data to PostgreSQL and Centralising Data
+1. Execute the main script to centralise data to PostgreSQL. 
+
+    ```bash
+    python main.py
+    ```
+    This script will:
+    1. drop the current database schema
+    2. read and clean the sales data from the specified sources and upload it to PostgreSQL.
+    3. run the queries to create the new database schema
+    4. run the business intelligence reports
+
+    The sql queries and business intelligence queries to run can be selected on an ad-hoc basis by modifying `main.py`.
+
+
+## License
+
+This project is open to the public. 
