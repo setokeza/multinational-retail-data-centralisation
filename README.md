@@ -56,7 +56,7 @@ Before using this project, make sure you have the following prerequisites instal
 Clone this repository to your local machine:
 
 ```bash
-git clone https://github.com/setokeza/AiCore-Multinational-Retail-Data-Centralisation.git
+git clone https://github.com/setokeza/multinational-retail-data-centralisation.git
 ```
 ## File Structure
 
