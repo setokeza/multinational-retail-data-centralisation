@@ -27,7 +27,8 @@ if __name__ == "__main__":
     upload_engine = connector.init_db_engine('SD')
 
     # Run SQL to drop all database constraints, so we can over-write tables in the database
-    schema_engine.run_queries(upload_engine,'1')
+    # Set this to '0' if you have not created any constraints on any tables yet; '1' if you have already added them
+    schema_engine.run_queries(upload_engine,'0')
 
     # Extract, clean and upload user data
     user_df = extractor.read_rds_table(connector,'legacy_users')
