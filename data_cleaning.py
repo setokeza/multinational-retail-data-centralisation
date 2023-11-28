@@ -312,7 +312,7 @@ class DataCleaning():
         if '1' in switch:
             # extract, clean and upload user data
             user_df = extractor.read_rds_table(connector,'legacy_users')
-            user_df = runme.clean_user_data(user_df)
+            user_df = self.clean_user_data(user_df)
             print('test_DataCleaning(): ',len(user_df))
             connector.upload_to_db(upload_engine, user_df, 'dim_users')
 
@@ -320,7 +320,7 @@ class DataCleaning():
             # extract, clean and upload card data
             pdf_link = 'https://data-handling-public.s3.eu-west-1.amazonaws.com/card_details.pdf'
             card_df = extractor.retrieve_pdf_data(pdf_link)
-            card_df = runme.clean_card_data(card_df)
+            card_df = self.clean_card_data(card_df)
             print('test_DataCleaning(): ',len(card_df))
             connector.upload_to_db(upload_engine, card_df, 'dim_card_details')
 
@@ -334,7 +334,7 @@ class DataCleaning():
             endpoint = 'https://aqj7u5id95.execute-api.eu-west-1.amazonaws.com/prod/store_details/'
             header_dict = {'x-api-key':'yFBQbwXe9J3sd6zWVAMrK6lcxxr0q1lr2PT6DDMX'}
             store_df = extractor.retrieve_stores_data(endpoint, num_stores, header_dict)
-            store_df = runme.clean_store_data(store_df)
+            store_df = self.clean_store_data(store_df)
             print('test_DataCleaning(): ',len(store_df))
             connector.upload_to_db(upload_engine, store_df, 'dim_store_details')
 
@@ -344,14 +344,14 @@ class DataCleaning():
             bucket = 'data-handling-public'
             object = 'products.csv'
             products_df = extractor.extract_from_s3(file_path, bucket, object)
-            products_df = runme.clean_products_data(products_df)
+            products_df = self.clean_products_data(products_df)
             print('test_DataCleaning(): ',len(products_df))
             connector.upload_to_db(upload_engine, products_df, 'dim_products')
 
         if '5' in switch:
             #  extract, clean and upload orders data
             orders_df = extractor.read_rds_table(connector,'orders_table')
-            orders_df = runme.clean_orders_data(orders_df)
+            orders_df = self.clean_orders_data(orders_df)
             print('test_DataCleaning(): ',len(orders_df))
             connector.upload_to_db(upload_engine, orders_df, 'orders_table') 
 
@@ -359,7 +359,7 @@ class DataCleaning():
             #  extract, clean and upload dates data
             api_fetch = requests.get('https://data-handling-public.s3.eu-west-1.amazonaws.com/date_details.json')
             dates_df = pd.DataFrame(api_fetch.json())
-            dates_df = runme.clean_dates_data(dates_df)
+            dates_df = self.clean_dates_data(dates_df)
             print('test_DataCleaning(): ',len(dates_df))
             connector.upload_to_db(upload_engine, dates_df, 'dim_date_times')          
 
